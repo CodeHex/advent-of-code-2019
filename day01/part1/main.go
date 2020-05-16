@@ -29,7 +29,7 @@ func main() {
 		}
 
 		totalFuel += fuel
-		fmt.Printf("mass %d needs %d fuel, (total fuel %d)\n", mass, fuel, totalFuel)
+		fmt.Printf("mass %d needs %d fuel (total fuel %d)\n", mass, fuel, totalFuel)
 	}
 
 	fmt.Printf("\nTotal fuel: %d\n", totalFuel)
