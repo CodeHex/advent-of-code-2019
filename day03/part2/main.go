@@ -33,23 +33,29 @@ func main() {
 	// The Manhatten distance from the central port to any point should be |x| + |y|
 	//
 	// To calculate the minimum, first create a hash map of all the points crossed by the first wire
+	// ADDITION - Each point will record the minimum steps to get there when the map is being created
 	// Then traverse the points crossed by the second wire. If any of them exist for the first wire this is considered an intersection (cross point) and recorde
 	//
 	// Once all points have been tranversed on the secomd wire, calculate the Manhatten distance for all cross points and report the smallest
 
 	wire1Map := generatePointMap(wire1)
 	wire2Map := generatePointMap(wire2)
-	crossPoints, closestPoint := compareAndSortWireMaps(wire1Map, wire2Map)
+	crossWires := crossPoints(wire1Map, wire2Map)
 
-	if len(crossPoints) == 0 {
+	if len(crossWires) == 0 {
 		fmt.Println("unable to determine distance, no crossing point found")
 		return
 	}
 
-	for _, crossPoint := range crossPoints {
-		fmt.Printf("cross point at %v with dist %d\n", crossPoint, crossPoint.ManhattenDist())
+	for crossPoint, steps := range crossWires {
+		fmt.Printf("cross point at %v with dist %d and steps %d\n", crossPoint, crossPoint.ManhattenDist(), steps)
 	}
-	fmt.Printf("\nclosest cross point at %v with dist %d\n", closestPoint, closestPoint.ManhattenDist())
+
+	fmt.Println()
+	manDistPoint := closestManhattenPoint(crossWires)
+	fmt.Printf("closest Manhatten dist cross point at    %v with dist    %d\n", manDistPoint, manDistPoint.ManhattenDist())
+	stepsPoint, steps := closestStepsPoint(crossWires)
+	fmt.Printf("closest steps cross point at             %v with steps   %d\n", stepsPoint, steps)
 }
 
 type Direction string
@@ -101,7 +107,7 @@ type WirePoint struct {
 	y int
 }
 
-type WireMap map[WirePoint]struct{}
+type WireMap map[WirePoint]int
 
 func (w WirePoint) IsOrigin() bool {
 	return w.x == 0 && w.y == 0
@@ -122,15 +128,14 @@ func (w WirePoint) ManhattenDist() int {
 
 func generatePointMap(path []PathEntry) WireMap {
 	currentPoint := WirePoint{0, 0}
-	points := map[WirePoint]struct{}{
-		currentPoint: {},
+	points := map[WirePoint]int{
+		currentPoint: 0,
 	}
 
-	var addToX int
-	var addToY int
+	var steps int
 	for _, entry := range path {
-		addToX = 0
-		addToY = 0
+		addToX := 0
+		addToY := 0
 		switch entry.direction {
 		case Up:
 			addToY = 1
@@ -143,30 +148,52 @@ func generatePointMap(path []PathEntry) WireMap {
 		}
 
 		for i := 0; i < entry.distance; i++ {
+			steps += 1
 			currentPoint = WirePoint{x: currentPoint.x + addToX, y: currentPoint.y + addToY}
-			points[currentPoint] = struct{}{}
+			if _, ok := points[currentPoint]; !ok {
+				points[currentPoint] = steps
+			}
 		}
 	}
 	return points
 }
 
-func compareAndSortWireMaps(wire1Map WireMap, wire2Map WireMap) ([]WirePoint, WirePoint) {
-	var crossPoints []WirePoint
+func crossPoints(wire1Map WireMap, wire2Map WireMap) map[WirePoint]int {
+	crossPoints := make(map[WirePoint]int)
 
-	// Build up collection of cross points
-	for point := range wire2Map {
-		if _, ok := wire1Map[point]; ok && !point.IsOrigin() {
-			crossPoints = append(crossPoints, point)
+	// Build up collection of cross points with combined steps to get there
+	for point, wire2Steps := range wire2Map {
+		if wire1Steps, ok := wire1Map[point]; ok && !point.IsOrigin() {
+			crossPoints[point] = wire1Steps + wire2Steps
 		}
 	}
+	return crossPoints
+}
 
-	sort.Slice(crossPoints, func(i, j int) bool {
-		return crossPoints[i].ManhattenDist() < crossPoints[j].ManhattenDist()
+func closestManhattenPoint(crossPoints map[WirePoint]int) WirePoint {
+	points := make([]WirePoint, 0, len(crossPoints))
+	for point := range crossPoints {
+		points = append(points, point)
+	}
+
+	sort.Slice(points, func(i, j int) bool {
+		return points[i].ManhattenDist() < points[j].ManhattenDist()
 	})
 
-	closest := WirePoint{}
 	if len(crossPoints) > 0 {
-		closest = crossPoints[0]
+		return points[0]
 	}
-	return crossPoints, closest
+	return WirePoint{}
+}
+
+func closestStepsPoint(crossPoints map[WirePoint]int) (WirePoint, int) {
+	point := WirePoint{}
+	steps := -1
+	for crossPoint, crossSteps := range crossPoints {
+		if steps == -1 || crossSteps < steps {
+			point = crossPoint
+			steps = crossSteps
+		}
+	}
+	return point, steps
 }
