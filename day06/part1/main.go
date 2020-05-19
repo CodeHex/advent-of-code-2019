@@ -27,16 +27,17 @@ func main() {
 	}
 
 	fmt.Printf("Total orbits: %d\n", totalOrbits)
+	fmt.Printf("Shortest path between YOU and SAN is %d hops\n", orbitMap.shortestHops())
 }
 
 // Holds the planets and what they directly orbit
-type planetMap map[string][]string
+type planetMap map[string]string
 
 func newOrbitMap(inputLines []string) planetMap {
 	m := make(planetMap)
 	for _, line := range inputLines {
 		parts := strings.Split(line, ")")
-		m[parts[0]] = append(m[parts[0]], parts[1])
+		m[parts[1]] = parts[0]
 	}
 	return m
 }
@@ -44,12 +45,39 @@ func newOrbitMap(inputLines []string) planetMap {
 // orbits are calculated by adding the direct orbits, plus
 // all direct and indirect orbits of inner planets
 func (p planetMap) calculateOrbits(planet string) int {
-	// Start with direct orbits
-	total := len(p[planet])
-
-	// Add all other orbits of inner planets
-	for _, innerPlanet := range p[planet] {
-		total += p.calculateOrbits(innerPlanet)
+	inner, ok := p[planet]
+	if !ok {
+		return 0
 	}
-	return total
+	return p.calculateOrbits(inner) + 1
+}
+
+func (p planetMap) generatePath(entry string) []string {
+	var path []string
+	ok := true
+	for ok {
+		path = append(path, entry)
+		entry, ok = p[entry]
+	}
+
+	reversedPath := make([]string, len(path))
+	for i, entry := range path {
+		reversedPath[len(path)-1-i] = entry
+	}
+	return reversedPath
+}
+
+func (p planetMap) shortestHops() int {
+	pathToSAN := p.generatePath("SAN")
+	pathToYOU := p.generatePath("YOU")
+
+	// Find first index where prev index differs (common ancestor)
+	for i := 0; i < len(pathToSAN); i++ {
+		if pathToSAN[i] != pathToYOU[i] {
+			// The i -1 must be the common node, so total orbit hop is
+			// hops from SANS -> COMMON -> YOU
+			return (len(pathToSAN) - i - 1) + (len(pathToYOU) - i - 1)
+		}
+	}
+	return 0
 }
