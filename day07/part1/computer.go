@@ -21,7 +21,7 @@ type computer struct {
 	disableLog bool
 }
 
-// newComputer reads in the input data in the form of a single CSV string
+// newComputer reads in the input data in the form of a single CSV string and uses a scanner to read input
 func newComputer(inputData string, scanner *bufio.Scanner) (*computer, error) {
 	memory, err := parseMemoryInput(inputData)
 	if err != nil {
@@ -30,7 +30,7 @@ func newComputer(inputData string, scanner *bufio.Scanner) (*computer, error) {
 	return &computer{memory: memory, insPtr: 0, inScanner: scanner}, nil
 }
 
-// newComputer reads in the input data in the form of a single CSV string
+// newChannelComputer reads in the input data in the form of a single CSV string and uses channels to read input and send output
 func newChannelComputer(inputData string, in <-chan int, out chan<- int) (*computer, error) {
 	memory, err := parseMemoryInput(inputData)
 	if err != nil {
@@ -82,15 +82,6 @@ func (c *computer) run() error {
 		op.Apply(c)
 	}
 	return nil
-}
-
-// input reads the value from the scanner
-func (c *computer) input() (int, error) {
-	if c.inScanner == nil {
-		return -1, errors.New("computer has no scanner")
-	}
-	c.inScanner.Scan()
-	return strconv.Atoi(c.inScanner.Text())
 }
 
 // addrOutOfBounds detects if the provided pointer is out of bounds
