@@ -28,6 +28,8 @@ func main() {
 
 	clearScreen()
 	comp, _ := newComputer(inputText, nil)
+	comp.disableLog = true
+	comp.disableOutLog = true
 
 	comp.run()
 	clearScreen()
@@ -36,8 +38,9 @@ func main() {
 		outputScreenBytes[i] = byte(v)
 	}
 	outputScreen := string(outputScreenBytes)
-	fmt.Println(outputScreen)
-	fmt.Printf("alignment = %d\n", calcAlignment(outputScreen))
+	alignment, newScreen := calcAlignment(outputScreen)
+	fmt.Println(newScreen)
+	fmt.Printf("alignment = %d\n", alignment)
 }
 
 func clearScreen() {
@@ -46,21 +49,39 @@ func clearScreen() {
 	cmd.Run()
 }
 
-func calcAlignment(out string) int {
+func calcAlignment(out string) (int, string) {
 	lines := strings.Split(out, "\n")
-	lines = lines[:len(lines)-1] // Remove last empty line
-	n := len(lines)
+	lines = lines[:len(lines)-2] // Remove last empty line
+	depth := len(lines)
+	length := len(lines[0])
+
+	fmt.Println(length, depth)
+
+	newScreenPixels := make([][]byte, depth)
 	sum := 0
-	for j := 1; j < n-2; j++ {
-		for i := 1; i < len(lines[j])-2; i++ {
+	for j := 0; j < depth; j++ {
+		newScreenPixels[j] = make([]byte, length)
+		for i := 0; i < length; i++ {
+			newScreenPixels[j][i] = lines[j][i]
+
+			if i == 0 || i == length-1 || j == 0 || j == depth-1 {
+				continue
+			}
+
 			if lines[j][i] == '#' &&
 				lines[j-1][i] == '#' &&
 				lines[j+1][i] == '#' &&
 				lines[j][i+1] == '#' &&
 				lines[j][i-1] == '#' {
+				newScreenPixels[j][i] = 'O'
 				sum += (i * j)
 			}
 		}
 	}
-	return sum
+	newlines := make([]string, depth)
+	for k, newline := range newScreenPixels {
+		newlines[k] = string(newline)
+	}
+	newScreen := strings.Join(newlines, "\n") + "\n"
+	return sum, newScreen
 }
