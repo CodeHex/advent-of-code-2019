@@ -89,6 +89,9 @@ func (c *computer) run() error {
 		// Apply operation
 		op.Apply(c)
 	}
+	if c.outChan != nil {
+		close(c.outChan)
+	}
 	return nil
 }
 
